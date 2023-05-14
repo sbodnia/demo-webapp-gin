@@ -1,0 +1,95 @@
+# Build image and push it to ECR + Deploy
+name: Docker Image [Build + Push to ECR]
+
+on:
+   push:
+    branches:
+      - 'main'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  # Set environment variables
+  ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
+  ROLE: ${{ vars.AWS_ROLE_NAME }}
+  REGION: ${{ vars.AWS_DEFAULT_REGION }}
+  REGISTRY: ${{ vars.REGISTRY }}
+  REPOSITORY: ${{ vars.REPOSITORY }}
+  CLUSTER: ${{ vars.ECS_CLUSTER_NAME }}
+  SERVICE: ${{ vars.ECS_SERVICE_NAME }}
+  TASKDEF: ${{ vars.ECS_TASK_DEFINITION_NAME }}
+  CONTAINER: ${{ vars.ECS_CONTAINER_NAME }}
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        # Reference link:
+        # https://github.com/actions/checkout
+        uses: actions/checkout@v3
+         
+      - name: Configure AWS credentials
+        # Reference link:
+        # https://github.com/aws-actions/configure-aws-credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::$ACCOUNT:role/$ROLE
+          aws-region: $REGION
+          
+      - name: Login to Amazon ECR
+        # Reference link:
+        # https://github.com/aws-actions/amazon-ecr-login
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag and push image to ECR
+        run: |
+             docker build -t $REGISTRY/$REPOSITORY:v$GITHUB_RUN_NUMBER -t $REGISTRY/$REPOSITORY:latest .
+             docker push $REGISTRY/$REPOSITORY:v$GITHUB_RUN_NUMBER
+             docker push $REGISTRY/$REPOSITORY:latest
+             
+  deploy:     
+   needs: build
+   runs-on: ubuntu-latest
+   steps:
+      - name: Check out code
+        # Reference link:
+        # https://github.com/actions/checkout
+        uses: actions/checkout@v3
+        
+      - name: Configure AWS credentials
+        # Reference link:
+        # https://github.com/aws-actions/configure-aws-credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::$ACCOUNT:role/$ROLE
+          aws-region: $REGION
+          
+      - name: Download task definition
+        run: |
+            aws ecs describe-task-definition --task-definition $TASKDEF \
+            --query taskDefinition > task-definition.json
+
+        
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        # Reference link:
+        # https://github.com/aws-actions/amazon-ecs-render-task-definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: $CONTAINER
+          image: $REGISTRY/$REPOSITORY:latest
+
+      - name: Deploy Amazon ECS task definition
+        # Reference link:
+        # https://github.com/aws-actions/amazon-ecs-deploy-task-definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: $SERVICE
+          cluster: $CLUSTER
+          wait-for-service-stability: true
