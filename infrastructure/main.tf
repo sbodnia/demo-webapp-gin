@@ -73,13 +73,14 @@ resource "aws_security_group" "demo" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+  tags = var.additional_tags
 }
 
 # IAM Role Spot Fleet
 resource "aws_iam_role" "demo_fleet" {
   name_prefix        = "${var.name}-spot-fleet-role"
   assume_role_policy = data.aws_iam_policy_document.instance-assume-role-policy-for-spotfleet.json
+  tags               = var.additional_tags
 }
 
 resource "aws_iam_role_policy_attachment" "demo_fleet" {
@@ -109,6 +110,7 @@ resource "aws_appautoscaling_target" "ecs_target" {
   resource_id        = "spot-fleet-request/${aws_spot_fleet_request.demo_fleet.id}"
   scalable_dimension = "ec2:spot-fleet-request:TargetCapacity"
   service_namespace  = "ec2"
+  tags               = var.additional_tags
 }
 
 resource "aws_appautoscaling_policy" "ecs_policy" {
@@ -128,6 +130,7 @@ resource "aws_appautoscaling_policy" "ecs_policy" {
       scaling_adjustment          = -1
     }
   }
+  tags = var.additional_tags
 }
 
 #########################
@@ -138,17 +141,20 @@ resource "aws_appautoscaling_policy" "ecs_policy" {
 resource "aws_ecr_repository" "repository" {
   name                 = var.repo_name
   image_tag_mutability = "MUTABLE"
+  tags                 = var.additional_tags
 }
 
 # ECS
 resource "aws_ecs_cluster" "demo" {
   name = "${var.name}-cluster"
+  tags = var.additional_tags
 }
 
 # IAM Role ECS Instance
 resource "aws_iam_role" "demo_ecs" {
   assume_role_policy = data.aws_iam_policy_document.instance-assume-role-policy-for-ecs-node.json
   name               = "${var.name}-ecsInstanceRole"
+  tags               = var.additional_tags
 }
 resource "aws_iam_role_policy_attachment" "demo_ecs" {
   role       = aws_iam_role.demo_ecs.name
@@ -157,6 +163,7 @@ resource "aws_iam_role_policy_attachment" "demo_ecs" {
 resource "aws_iam_instance_profile" "demo_ecs" {
   role = aws_iam_role.demo_ecs.name
   name = "${var.name}-ecsInstanceProfile"
+  tags = var.additional_tags
 }
 
 # IAM Role Task Execution
@@ -175,6 +182,7 @@ resource "aws_iam_role" "ecs_task_execution" {
       }
     ]
   })
+  tags = var.additional_tags
 }
 
 data "aws_iam_policy" "aws_ecs_task_execution_role" {
@@ -220,19 +228,20 @@ resource "aws_ecs_service" "demo" {
     enable   = true
     rollback = true
   }
+  tags = var.additional_tags
 }
 
 
-#########################
-# Autoscaling Group + ALB
-#########################
-
+########################
 # ALB
+########################
+
 resource "aws_lb" "loadbalancer" {
   internal        = false
   name            = "${var.name}-alb"
   subnets         = [aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id, aws_default_subnet.default_az3.id]
   security_groups = [aws_security_group.demo.id]
+  tags            = var.additional_tags
 }
 
 
@@ -242,6 +251,7 @@ resource "aws_lb_target_group" "lb_target_group" {
   protocol    = "HTTP"
   vpc_id      = aws_default_vpc.default.id
   target_type = "instance"
+  tags        = var.additional_tags
 }
 
 resource "aws_lb_listener" "lb_listener" {
@@ -256,7 +266,10 @@ resource "aws_lb_listener" "lb_listener" {
 
 }
 
+########################
 # Autoscaling GR
+########################
+
 resource "aws_autoscaling_group" "autoscaling_gr" {
   availability_zones = ["${var.region}a", "${var.region}b", "${var.region}c"]
   desired_capacity   = 1
@@ -286,5 +299,5 @@ resource "aws_autoscaling_group" "autoscaling_gr" {
     }
     triggers = ["tag"]
   }
+  tags = var.additional_tag
 }
-
