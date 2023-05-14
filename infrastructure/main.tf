@@ -209,3 +209,82 @@ resource "aws_ecs_task_definition" "task_definition" {
   ])
 }
 
+# Service
+resource "aws_ecs_service" "demo" {
+  cluster         = aws_ecs_cluster.demo.id
+  desired_count   = 1
+  launch_type     = "EC2"
+  name            = "${var.name}-service"
+  task_definition = aws_ecs_task_definition.task_definition.arn
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+}
+
+
+#########################
+# Autoscaling Group + ALB
+#########################
+
+# ALB
+resource "aws_lb" "loadbalancer" {
+  internal        = false
+  name            = "${var.name}-alb"
+  subnets         = [aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id, aws_default_subnet.default_az3.id]
+  security_groups = [aws_security_group.demo.id]
+}
+
+
+resource "aws_lb_target_group" "lb_target_group" {
+  name        = "${var.name}-target-gr"
+  port        = "8080"
+  protocol    = "HTTP"
+  vpc_id      = aws_default_vpc.default.id
+  target_type = "instance"
+}
+
+resource "aws_lb_listener" "lb_listener" {
+  default_action {
+    target_group_arn = aws_lb_target_group.lb_target_group.id
+    type             = "forward"
+  }
+
+  load_balancer_arn = aws_lb.loadbalancer.arn
+  port              = "8080"
+  protocol          = "HTTP"
+
+}
+
+# Autoscaling GR
+resource "aws_autoscaling_group" "autoscaling_gr" {
+  availability_zones = ["${var.region}a", "${var.region}b", "${var.region}c"]
+  desired_capacity   = 1
+  max_size           = 4
+  min_size           = 1
+  health_check_type  = "EC2"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  launch_template {
+    id      = aws_launch_template.demo.id
+    version = aws_launch_template.demo.latest_version
+  }
+
+  tag {
+    key                 = "Key"
+    value               = "Value"
+    propagate_at_launch = true
+  }
+
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+    }
+    triggers = ["tag"]
+  }
+}
+
