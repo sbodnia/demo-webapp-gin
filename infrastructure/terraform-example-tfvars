@@ -1,0 +1,12 @@
+name = "NAME"
+
+additional_tags = {
+  "Key1" = "Value1"
+  "Key2" = "Value2"
+}
+
+ami            = "ami-1234567890" # NOTE: Use only ecs-optimized AMIs regarding to you region
+instance_type  = "t2.micro"
+allowed_ip     = "0.0.0.0"
+allowed_port   = 443
+container_port = 443
