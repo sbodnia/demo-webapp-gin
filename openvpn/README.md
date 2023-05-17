@@ -22,7 +22,7 @@ So, let's clink on a blue button in center and next click Use Subcriptions, and 
 
 Here we need to copy our Subscription Key and now we can activate account by two ways. 
 First, by Admin UI. Go to previous link - ip-address:943/admin - and click on Activation on left-side bar. Paste your key to field, click on Activate and that's all
-![image](https://github.com/sbodnia/demo-webapp-gin/assets/129848780/658d85bd-02e2-49b4-b697-7632eceb7a9b)
+![image](https://github.com/sbodnia/demo-webapp-gin/assets/129848780/62e94bf8-7053-4e8a-a303-919da077f156)
 
 Second, by Terminal. For that we need login as "openvpnas" and next type "sudo su" for switching to root. Next do commands below
 ```
@@ -33,7 +33,7 @@ cd /usr/local/openvpn_as/scripts/
 
 So, now we can create users and configure our VPN as we wish.
 Let's take a look on Configuration --> VPN Settings on our left-side bar. In Routing we need switch option "Should client Internet traffic be routed through the VPN?" to YES.
-![image](https://github.com/sbodnia/demo-webapp-gin/assets/129848780/c9569f3f-f75e-4a1d-8ac9-9ffb6da1a6f0)
+![image](https://github.com/sbodnia/demo-webapp-gin/assets/129848780/0886f659-9cf5-4273-94a5-9f58ea9263be)
 
 
 And now let's create an user. Come to User Management --> User Permissions. Here we have to input user which we want and configure his permissions. We can provide any user by standart credentials as password or we can provide ovpn config on User Profile, but second option is available when user is already exists.
@@ -49,7 +49,7 @@ For connection by users credentials or ovpn config through VPN, we need official
 
 
 Windows and MacOS user, connection is going by UI application. Users can connect by URL which will be provided by Admin and their credentials. Also, they can connect by ovpn config that also will be provided by Admin.
-![image](https://github.com/sbodnia/demo-webapp-gin/assets/129848780/355a3a10-fb54-4c33-858f-94e559c7ee49)
+![image](https://github.com/sbodnia/demo-webapp-gin/assets/129848780/69d044dc-a6e0-4789-a54e-5d0d9ecf6775)
 
 Linux users should to go to [official documentantaion](https://community.openvpn.net/openvpn/wiki/OpenVPN3Linux?_ga=2.201345809.1629688436.1684084761-1922927315.1684084761) for install and configure VPN in terminal 
 
